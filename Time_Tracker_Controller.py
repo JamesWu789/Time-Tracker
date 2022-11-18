@@ -1,5 +1,6 @@
 import time
-import pickle
+import datetime
+import pickle, json
 import collections
 import Time_Tracker_UI
 from PyQt5 import QtWidgets, QtGui, QtCore#, QListWidget
@@ -70,12 +71,15 @@ class MainWindow_controller(QtWidgets.QMainWindow):
                 self.ui.listWidget.takeItem(self.ui.listWidget.row(current_item))
     
     def data_clicked(self): #選擇日曆上的一天 
-        date = self.ui.calendarWidget.selectedDate().toString("yyyy-MM-dd")
-        print(date)
+        date_picked = self.ui.calendarWidget.selectedDate().toString("yyyy-MM-dd")
+        print(date_picked)
         
         
     def start_time(self):
-        if self.selected_item != "" and self.is_recording==False:
+        if self.selected_item == "":
+            QtWidgets.QMessageBox.about(self ,"錯誤", "請先選擇工作項目!!")
+            print("請先選擇工作項目!!")
+        elif self.is_recording==False:
             reply = QtWidgets.QMessageBox.question(self, 'Notice', '你正要開始'+str(self.selected_item)+'嗎?', QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
             if reply == QtWidgets.QMessageBox.Yes:
                 self.start_time = time.time()
@@ -95,34 +99,43 @@ class MainWindow_controller(QtWidgets.QMainWindow):
         else: print("Error:還沒開始記錄，請先開始計時")
         
     def save_data(self):
-        date = self.ui.calendarWidget.selectedDate().toString("yyyy-MM-dd")
-        save = open(self.location + str(date)+'.pkl', 'wb')
-        pickle. dump(self.event_list, save)
-        save.close()
-    
+        try:
+            date = datetime.date.today() #self.ui.calendarWidget.selectedDate().toString("yyyy-MM-dd")
+            save = open(self.location + str(date)+'.json', 'w')
+            json. dump(self.event_list, save)
+            save.close()
+        except:
+            pass
     
     def load_data(self):    #秀出此天的資料
-        date = self.ui.calendarWidget.selectedDate().toString("yyyy-MM-dd")
-        with open(self.location+str(date)+'.pkl','rb') as l:
-            self.load_list = pickle.load(l)
-        slm = QtCore.QStringListModel()
-        slm.setStringList(self.load_list.keys())
-        self.ui.listView.setModel(slm)
-        abc = QtCore.QStringListModel()
-        value=list(self.load_list.values())
-        b=[]
-        c=[]
-        for i in value:
-            minu,sec=divmod(i,60)
-            b.append(str(int(minu)))
-            c.append(str(round(sec,1)))
-        abc.setStringList(b)
-        self.ui.listView_time.setModel(abc)
-        de = QtCore.QStringListModel()
-        de.setStringList(c)
-        self.ui.listView_time_2.setModel(de)
+        try:
+            date = self.ui.calendarWidget.selectedDate().toString("yyyy-MM-dd")
+            with open(self.location+str(date)+'.json','r') as l:
+                self.load_list = json.load(l)
+            slm = QtCore.QStringListModel()
+            slm.setStringList(self.load_list.keys())
+            self.ui.listView.setModel(slm)
+            abc = QtCore.QStringListModel()
+            value=list(self.load_list.values())
+            b=[]
+            c=[]
+            for i in value:
+                minu,sec=divmod(i,60)
+                b.append(str(int(minu)))
+                c.append(str(round(sec,1)))
+            abc.setStringList(b)
+            self.ui.listView_time.setModel(abc)
+            de = QtCore.QStringListModel()
+            de.setStringList(c)
+            self.ui.listView_time_2.setModel(de)
+        except:             #若無當天檔案
+            no2 = QtCore.QStringListModel()
+            no2.setStringList([''])         #裏頭必須是list
+            self.ui.listView.setModel(no2)          
+            self.ui.listView_time.setModel(no2)
+            self.ui.listView_time_2.setModel(no2)
         
-                                                          
+
     def Widget_clicked(self): 
         current_item = self.ui.listWidget.currentItem()
         self.selected_item = current_item.text()
@@ -133,5 +146,3 @@ if __name__ == '__main__':
     window = MainWindow_controller()
     window.show()
     sys.exit(app.exec_())
-
-        
